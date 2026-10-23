@@ -36,6 +36,24 @@ public sealed class BookingApiTests
     }
 
     [Fact]
+    public async Task Readiness_ReportsDatabaseAndMigrationChecks()
+    {
+        await using var app = await _fixture.StartAppAsync();
+
+        var response = await app.Client.GetAsync("/health/ready");
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+
+        var report = await response.Content.ReadFromJsonAsync<JsonElement>();
+        report.GetProperty("status").GetString().Should().Be("Healthy");
+
+        var checks = report.GetProperty("checks").EnumerateArray()
+            .Select(check => check.GetProperty("name").GetString())
+            .ToArray();
+
+        checks.Should().Contain("database").And.Contain("migrations");
+    }
+
+    [Fact]
     public async Task CreateEvent_WithoutAdminKey_ReturnsUnauthorized()
     {
         await using var app = await _fixture.StartAppAsync();

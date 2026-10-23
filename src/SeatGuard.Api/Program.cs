@@ -10,6 +10,7 @@ using Scalar.AspNetCore;
 using SeatGuard.Api.Authentication;
 using SeatGuard.Api.Endpoints;
 using SeatGuard.Api.Errors;
+using SeatGuard.Api.Health;
 using SeatGuard.Api.Middleware;
 using SeatGuard.Application;
 using SeatGuard.Application.Observability;
@@ -82,7 +83,8 @@ builder.Services.AddRateLimiter(options =>
 
 builder.Services.AddOpenApi();
 builder.Services.AddHealthChecks()
-    .AddDbContextCheck<SeatGuardDbContext>("database", tags: ["ready"]);
+    .AddDbContextCheck<SeatGuardDbContext>("database", tags: ["ready"])
+    .AddCheck<DatabaseMigrationHealthCheck>("migrations", tags: ["ready"]);
 
 if (observabilityEnabled)
 {
