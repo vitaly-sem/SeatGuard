@@ -46,18 +46,25 @@ kubectl apply -k deploy/k8s/overlays/prod
 ```
 
 `secrets.env` is gitignored. In a real cluster prefer External Secrets or your
-provider's secret manager instead of a local file. GHCR packages created by the
-workflow are private by default: either make the package public or create an
-image pull secret and reference it from the Deployment:
+provider's secret manager instead of a local file.
+
+GHCR packages created by the workflow are private by default. The shared
+`seatguard-api` ServiceAccount references the `ghcr-pull` secret, so the
+migration Job and the API Deployment both inherit the credentials. Create the
+secret in the target namespace **before** applying the overlay (or make the
+package public and delete the `imagePullSecrets` entry from the base
+ServiceAccount):
 
 ```bash
 kubectl -n seatguard create secret docker-registry ghcr-pull \
   --docker-server=ghcr.io \
   --docker-username=<github-user> \
   --docker-password=<token-with-read-packages>
-kubectl -n seatguard patch deployment seatguard-api \
-  -p '{"spec":{"template":{"spec":{"imagePullSecrets":[{"name":"ghcr-pull"}]}}}}'
 ```
+
+The development overlay builds and runs `seatguard-api:latest` locally, so it
+patches the ServiceAccount to remove the pull secret; no registry credentials
+are required there.
 
 ## What is included
 

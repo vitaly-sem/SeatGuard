@@ -11,6 +11,7 @@ resources:
 patches:
   - path: patch-configmap.yaml
   - path: patch-deployment.yaml
+  - path: patch-serviceaccount.yaml
 
 secretGenerator:
   - name: seatguard-secrets
