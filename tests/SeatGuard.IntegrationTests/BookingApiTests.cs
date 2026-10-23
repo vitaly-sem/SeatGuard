@@ -100,6 +100,37 @@ public sealed class BookingApiTests
     }
 
     [Fact]
+    public async Task Meta_HidesDocumentationWhenItIsDisabled()
+    {
+        await using var app = await _fixture.StartAppAsync();
+
+        var meta = await app.Client.GetFromJsonAsync<JsonElement>("/api/v1/meta");
+        meta.GetProperty("documentation").GetBoolean().Should().BeFalse();
+
+        (await app.Client.GetAsync("/openapi/v1.json")).StatusCode.Should().Be(HttpStatusCode.NotFound);
+    }
+
+    [Fact]
+    public async Task Meta_ReportsDocumentationWhenItIsExposed()
+    {
+        var previous = Environment.GetEnvironmentVariable("Api__ExposeDocumentation");
+        Environment.SetEnvironmentVariable("Api__ExposeDocumentation", "true");
+
+        try
+        {
+            await using var app = await _fixture.StartAppAsync();
+
+            var meta = await app.Client.GetFromJsonAsync<JsonElement>("/api/v1/meta");
+            meta.GetProperty("documentation").GetBoolean().Should().BeTrue();
+            (await app.Client.GetAsync("/openapi/v1.json")).StatusCode.Should().Be(HttpStatusCode.OK);
+        }
+        finally
+        {
+            Environment.SetEnvironmentVariable("Api__ExposeDocumentation", previous);
+        }
+    }
+
+    [Fact]
     public async Task Availability_SupportsConditionalGetAndChangesAfterAMutation()
     {
         await using var app = await _fixture.StartAppAsync();

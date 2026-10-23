@@ -242,13 +242,22 @@ app.UseRateLimiter();
 app.UseAuthentication();
 app.UseAuthorization();
 
-if (app.Environment.IsDevelopment() || app.Configuration.GetValue<bool>("Api:ExposeDocumentation"))
+var documentationExposed = app.Environment.IsDevelopment()
+    || app.Configuration.GetValue<bool>("Api:ExposeDocumentation");
+
+if (documentationExposed)
 {
     app.MapOpenApi();
     app.MapScalarApiReference(options => options.WithTitle("SeatGuard API"));
 }
 
 app.MapGet("/", () => Results.Redirect("/ui/"));
+
+app.MapGet("/api/v1/meta", () => Results.Ok(new { documentation = documentationExposed }))
+    .WithName("GetApiMetadata")
+    .WithSummary("Describes optional capabilities the console can link to")
+    .RequireRateLimiting("reads")
+    .Produces(StatusCodes.Status200OK);
 
 app.MapEventEndpoints();
 app.MapReservationEndpoints();

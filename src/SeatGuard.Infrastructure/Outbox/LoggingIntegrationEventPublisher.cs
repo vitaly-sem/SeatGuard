@@ -17,7 +17,13 @@ internal sealed class LoggingIntegrationEventPublisher(ILogger<LoggingIntegratio
         CancellationToken cancellationToken = default)
     {
         logger.LogInformation("Publishing integration event {EventType}", eventType);
-        logger.LogDebug("Integration event payload: {Payload}", payload);
+
+        // The payload carries customer identifiers and ticket codes. Log only its
+        // size so production logs cannot leak personal data.
+        logger.LogDebug(
+            "Integration event {EventType} ready ({PayloadBytes} bytes)",
+            eventType,
+            payload.Length);
 
         return Task.CompletedTask;
     }

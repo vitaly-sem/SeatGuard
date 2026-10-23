@@ -54,6 +54,7 @@ public sealed class SeatGuardFixture : IAsyncLifetime
         "ForwardedHeaders__Enabled",
         "ForwardedHeaders__KnownProxies__0",
         "ForwardedHeaders__KnownProxies__1",
+        "Api__ExposeDocumentation",
         "Observability__Enabled",
     ];
 

@@ -56,6 +56,8 @@ const els = {
   eventVenue: document.getElementById('event-venue'),
   eventDate: document.getElementById('event-date'),
   apiKey: document.getElementById('api-key'),
+  apiReferenceLink: document.getElementById('api-reference-link'),
+  openapiLink: document.getElementById('openapi-link'),
   sectionList: document.getElementById('section-list'),
   addSection: document.getElementById('add-section'),
   eventError: document.getElementById('event-error'),
@@ -219,6 +221,18 @@ function storageGet(key) {
 
 function storageSet(key, value) {
   try { localStorage.setItem(key, value); } catch { /* private mode */ }
+}
+
+function sessionGet(key) {
+  try { return sessionStorage.getItem(key); } catch { return null; }
+}
+
+function sessionSet(key, value) {
+  try { sessionStorage.setItem(key, value); } catch { /* private mode */ }
+}
+
+function sessionRemove(key) {
+  try { sessionStorage.removeItem(key); } catch { /* private mode */ }
 }
 
 function seconds(milliseconds) {
@@ -1287,7 +1301,11 @@ function openEventDialog() {
   els.eventError.hidden = true;
   els.eventDate.value = defaultStartValue();
   const isLocal = ['localhost', '127.0.0.1'].includes(location.hostname);
-  els.apiKey.value = storageGet('seatguard.apiKey') || (isLocal ? 'dev-admin-key' : '');
+
+  // Older builds kept the admin key in localStorage; drop it on sight.
+  try { localStorage.removeItem('seatguard.apiKey'); } catch { /* private mode */ }
+
+  els.apiKey.value = sessionGet('seatguard.apiKey') || (isLocal ? 'dev-admin-key' : '');
   els.sectionList.replaceChildren();
   addSectionRow({ name: 'Orchestra', rows: 8, seatsPerRow: 10, price: 49, currency: 'EUR' });
   els.dialog.showModal();
@@ -1413,7 +1431,7 @@ async function submitEventForm(event) {
       headers: { 'X-Api-Key': apiKey },
     });
 
-    storageSet('seatguard.apiKey', apiKey);
+    sessionSet('seatguard.apiKey', apiKey);
     els.dialog.close();
 
     toast(`Event created with ${result.seatCount.toLocaleString('en-US')} seats.`, 'success');
@@ -1486,6 +1504,23 @@ function bindEvents() {
   els.addSection.addEventListener('click', () => addSectionRow());
   els.eventForm.addEventListener('submit', (event) => void submitEventForm(event));
   els.dialog.addEventListener('cancel', () => { els.eventError.hidden = true; });
+  els.dialog.addEventListener('close', () => {
+    sessionRemove('seatguard.apiKey');
+    els.apiKey.value = '';
+  });
+}
+
+async function loadMeta() {
+  try {
+    const result = await apiFetch(`${API}/meta`, { log: false });
+    if (!result.ok) return;
+
+    const visible = Boolean(result.data?.documentation);
+    els.apiReferenceLink.hidden = !visible;
+    els.openapiLink.hidden = !visible;
+  } catch {
+    // Links stay hidden when the metadata endpoint is unreachable.
+  }
 }
 
 async function bootstrap() {
@@ -1498,6 +1533,7 @@ async function bootstrap() {
 
   setApiStatus('checking');
   void checkHealth();
+  void loadMeta();
   setInterval(() => void checkHealth(), 15_000);
 
   setInterval(tickReservation, 500);
