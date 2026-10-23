@@ -57,6 +57,7 @@ The solution is split into four projects:
 ## Quick start with Docker
 
 ```bash
+# If the development PostgreSQL container already owns port 55432, stop it first.
 docker compose up --build
 ```
 
