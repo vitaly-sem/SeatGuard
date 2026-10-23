@@ -27,6 +27,11 @@ internal sealed class CancelReservationCommandHandler(
             return;
         }
 
+        if (reservation.Status == ReservationStatus.Expired)
+        {
+            throw new ReservationExpiredException(reservation.Id, reservation.ExpiresAt);
+        }
+
         if (!reservation.Cancel(now))
         {
             return;

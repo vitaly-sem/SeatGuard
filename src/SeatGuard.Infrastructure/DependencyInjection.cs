@@ -12,6 +12,7 @@ using SeatGuard.Infrastructure.Concurrency;
 using SeatGuard.Infrastructure.Payments;
 using SeatGuard.Infrastructure.Persistence;
 using SeatGuard.Infrastructure.Persistence.Repositories;
+using SeatGuard.Infrastructure.Scheduling;
 
 namespace SeatGuard.Infrastructure;
 
@@ -37,6 +38,12 @@ public static class DependencyInjection
         services.AddMemoryCache();
         services.AddSingleton<IAvailabilityReadModelCache, MemoryAvailabilityReadModelCache>();
         services.AddSingleton<IPaymentGateway, SimulatedPaymentGateway>();
+
+        services.AddScoped<IExpiredReservationSweeper, ExpiredReservationSweeper>();
+        if (configuration.GetValue("Reservations:SweeperEnabled", true))
+        {
+            services.AddHostedService<ExpiredReservationSweeperService>();
+        }
 
         services.AddScoped<PessimisticSeatAllocationStrategy>();
         services.AddScoped<OptimisticSeatAllocationStrategy>();
@@ -64,6 +71,13 @@ public static class DependencyInjection
             .Validate(
                 settings => settings.ConcurrencyStrategy is "Pessimistic" or "Optimistic",
                 "Reservations:ConcurrencyStrategy must be 'Pessimistic' or 'Optimistic'.")
+            .Validate(
+                settings => settings.SweeperInterval > TimeSpan.Zero
+                    && settings.SweeperInterval <= TimeSpan.FromHours(1),
+                "Reservations:SweeperInterval must be between zero and one hour.")
+            .Validate(
+                settings => settings.SweeperBatchSize is > 0 and <= 1000,
+                "Reservations:SweeperBatchSize must be between 1 and 1000.")
             .ValidateOnStart();
 
         return services;

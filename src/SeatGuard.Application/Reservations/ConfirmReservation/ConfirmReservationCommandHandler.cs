@@ -42,6 +42,11 @@ internal sealed class ConfirmReservationCommandHandler(
             return reservation.ToDto();
         }
 
+        if (reservation.Status == ReservationStatus.Expired)
+        {
+            throw new ReservationExpiredException(reservation.Id, reservation.ExpiresAt);
+        }
+
         if (reservation.Status != ReservationStatus.Pending)
         {
             throw new InvalidReservationStateException(

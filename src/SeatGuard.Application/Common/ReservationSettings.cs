@@ -15,5 +15,7 @@ public sealed class ReservationSettings
 
     public int SweeperBatchSize { get; set; } = 100;
 
+    public bool SweeperEnabled { get; set; } = true;
+
     public string ConcurrencyStrategy { get; set; } = "Pessimistic";
 }
