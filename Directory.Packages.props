@@ -1,7 +1,7 @@
 <Project>
 
   <ItemGroup Label="Runtime">
-    <PackageVersion Include="MediatR" Version="12.5.0" />
+    <PackageVersion Include="MediatR" Version="14.2.0" />
     <PackageVersion Include="FluentValidation" Version="12.2.0" />
     <PackageVersion Include="FluentValidation.DependencyInjectionExtensions" Version="12.2.0" />
     <PackageVersion Include="Microsoft.EntityFrameworkCore" Version="10.0.13" />
