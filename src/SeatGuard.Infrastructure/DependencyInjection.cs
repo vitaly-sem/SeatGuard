@@ -1,7 +1,15 @@
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using SeatGuard.Application.Abstractions.Caching;
+using SeatGuard.Application.Abstractions.Payments;
 using SeatGuard.Application.Abstractions.Persistence;
+using SeatGuard.Application.Abstractions.Services;
+using SeatGuard.Application.Common;
+using SeatGuard.Infrastructure.Caching;
+using SeatGuard.Infrastructure.Concurrency;
+using SeatGuard.Infrastructure.Payments;
 using SeatGuard.Infrastructure.Persistence;
 using SeatGuard.Infrastructure.Persistence.Repositories;
 
@@ -25,6 +33,38 @@ public static class DependencyInjection
         services.AddScoped<IEventRepository, EventRepository>();
         services.AddScoped<ISeatRepository, SeatRepository>();
         services.AddScoped<IReservationRepository, ReservationRepository>();
+
+        services.AddMemoryCache();
+        services.AddSingleton<IAvailabilityReadModelCache, MemoryAvailabilityReadModelCache>();
+        services.AddSingleton<IPaymentGateway, SimulatedPaymentGateway>();
+
+        services.AddScoped<PessimisticSeatAllocationStrategy>();
+        services.AddScoped<OptimisticSeatAllocationStrategy>();
+        services.AddScoped<ISeatAllocationStrategy>(provider =>
+        {
+            var strategy = provider
+                .GetRequiredService<Microsoft.Extensions.Options.IOptions<ReservationSettings>>()
+                .Value
+                .ConcurrencyStrategy;
+
+            return string.Equals(strategy, "Optimistic", StringComparison.OrdinalIgnoreCase)
+                ? provider.GetRequiredService<OptimisticSeatAllocationStrategy>()
+                : provider.GetRequiredService<PessimisticSeatAllocationStrategy>();
+        });
+
+        services.AddOptions<ReservationSettings>()
+            .Bind(configuration.GetSection(ReservationSettings.SectionName))
+            .Validate(
+                settings => settings.HoldDuration > TimeSpan.Zero
+                    && settings.HoldDuration <= TimeSpan.FromHours(24),
+                "Reservations:HoldDuration must be between zero and 24 hours.")
+            .Validate(
+                settings => settings.AvailabilityCacheTtl >= TimeSpan.Zero,
+                "Reservations:AvailabilityCacheTtl cannot be negative.")
+            .Validate(
+                settings => settings.ConcurrencyStrategy is "Pessimistic" or "Optimistic",
+                "Reservations:ConcurrencyStrategy must be 'Pessimistic' or 'Optimistic'.")
+            .ValidateOnStart();
 
         return services;
     }
