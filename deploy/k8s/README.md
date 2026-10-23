@@ -45,6 +45,12 @@ kubectl -n seatguard delete job seatguard-migrate --ignore-not-found
 kubectl apply -k deploy/k8s/overlays/prod
 ```
 
+Secret names intentionally keep Kustomize's content suffix (no
+`disableNameSuffixHash`). Rotating `secrets.env` therefore produces a new
+Secret name and changes the pod template, so the Deployment rolls and every pod
+picks up the new value. Delete and re-apply the Job in the same change; a
+completed Job keeps its old pod template and does not rerun.
+
 `secrets.env` is gitignored. In a real cluster prefer External Secrets or your
 provider's secret manager instead of a local file.
 

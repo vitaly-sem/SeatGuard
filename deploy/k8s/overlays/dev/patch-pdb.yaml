@@ -1,0 +1,9 @@
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: seatguard-api
+# A single-replica development deployment cannot keep one pod available while
+# an eviction happens; allow the pod to be replaced instead.
+spec:
+  minAvailable: null
+  maxUnavailable: 1

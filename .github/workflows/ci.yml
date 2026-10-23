@@ -111,60 +111,7 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v7
 
-      - name: Build image
-        run: docker build --tag seatguard-api:ci --file src/SeatGuard.Api/Dockerfile .
-
-      - name: Smoke-test migrations, readiness and UI
-        run: |
-          connection="Host=host.docker.internal;Port=5432;Database=seatguard;Username=seatguard;Password=seatguard"
-
-          docker run --rm \
-            --add-host=host.docker.internal:host-gateway \
-            -e ConnectionStrings__SeatGuard="$connection" \
-            -e Admin__ApiKey=ci-admin-key \
-            -e Observability__Enabled=false \
-            seatguard-api:ci --migrate
-
-          docker run --detach --name seatguard-smoke \
-            --add-host=host.docker.internal:host-gateway \
-            --publish 18080:8080 \
-            -e ASPNETCORE_URLS=http://+:8080 \
-            -e ConnectionStrings__SeatGuard="$connection" \
-            -e Admin__ApiKey=ci-admin-key \
-            -e Observability__Enabled=false \
-            seatguard-api:ci
-
-          for _ in $(seq 1 30); do
-            if curl --fail --silent http://127.0.0.1:18080/health/ready > /tmp/ready.json; then
-              break
-            fi
-            sleep 1
-          done
-
-          cat /tmp/ready.json
-          grep --quiet '"status":"Healthy"' /tmp/ready.json
-          curl --fail --silent http://127.0.0.1:18080/ui/ | grep --quiet "Booking console"
-
-      - name: Dump container logs
-        if: always()
-        run: docker logs seatguard-smoke || true
-
-      - name: Remove smoke container
-        if: always()
-        run: docker rm --force seatguard-smoke || true
-
-      - name: Scan image with Trivy
-        uses: aquasecurity/trivy-action@v0.36.0
-        with:
-          image-ref: seatguard-api:ci
-          format: table
-          exit-code: "1"
-          ignore-unfixed: true
-          vuln-type: os,library
-          severity: CRITICAL,HIGH
-
       - name: Set up Buildx
-        if: github.event_name == 'push'
         uses: docker/setup-buildx-action@v4
 
       - name: Log in to GHCR
@@ -186,14 +133,83 @@ jobs:
             type=semver,pattern={{version}}
             type=raw,value=latest,enable={{is_default_branch}}
 
-      - name: Push image
-        if: github.event_name == 'push'
+      # Build exactly one artifact. Pull requests keep it in the local daemon;
+      # branch/tag pushes send it to GHCR and the remaining steps verify the
+      # pushed digest, so the scanned and smoke-tested bytes are the published
+      # bytes instead of a second build.
+      - name: Build image once
+        id: build
         uses: docker/build-push-action@v7
         with:
           context: .
           file: src/SeatGuard.Api/Dockerfile
-          push: true
-          tags: ${{ steps.meta.outputs.tags }}
+          push: ${{ github.event_name == 'push' }}
+          load: ${{ github.event_name != 'push' }}
+          tags: ${{ steps.meta.outputs.tags || 'seatguard-api:ci' }}
           labels: ${{ steps.meta.outputs.labels }}
-          provenance: true
-          sbom: true
+          provenance: ${{ github.event_name == 'push' }}
+          sbom: ${{ github.event_name == 'push' }}
+
+      - name: Resolve image reference
+        id: image
+        run: |
+          if [ "${{ github.event_name }}" = "push" ]; then
+            echo "ref=ghcr.io/${{ github.repository_owner }}/seatguard-api@${{ steps.build.outputs.digest }}" >> "$GITHUB_OUTPUT"
+          else
+            echo "ref=seatguard-api:ci" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Pull the pushed digest
+        if: github.event_name == 'push'
+        run: docker pull "${{ steps.image.outputs.ref }}"
+
+      - name: Smoke-test migrations, readiness and UI
+        env:
+          IMAGE: ${{ steps.image.outputs.ref }}
+        run: |
+          connection="Host=host.docker.internal;Port=5432;Database=seatguard;Username=seatguard;Password=seatguard"
+
+          docker run --rm \
+            --add-host=host.docker.internal:host-gateway \
+            -e ConnectionStrings__SeatGuard="$connection" \
+            -e Admin__ApiKey=ci-admin-key \
+            -e Observability__Enabled=false \
+            "$IMAGE" --migrate
+
+          docker run --detach --name seatguard-smoke \
+            --add-host=host.docker.internal:host-gateway \
+            --publish 18080:8080 \
+            -e ASPNETCORE_URLS=http://+:8080 \
+            -e ConnectionStrings__SeatGuard="$connection" \
+            -e Admin__ApiKey=ci-admin-key \
+            -e Observability__Enabled=false \
+            "$IMAGE"
+
+          for _ in $(seq 1 30); do
+            if curl --fail --silent http://127.0.0.1:18080/health/ready > /tmp/ready.json; then
+              break
+            fi
+            sleep 1
+          done
+
+          cat /tmp/ready.json
+          grep --quiet '"status":"Healthy"' /tmp/ready.json
+          curl --fail --silent http://127.0.0.1:18080/ui/ | grep --quiet "Booking console"
+
+      - name: Dump container logs
+        if: always()
+        run: docker logs seatguard-smoke || true
+
+      - name: Remove smoke container
+        if: always()
+        run: docker rm --force seatguard-smoke || true
+
+      - name: Scan the tested image with Trivy
+        uses: aquasecurity/trivy-action@v0.36.0
+        with:
+          image-ref: ${{ steps.image.outputs.ref }}
+          format: table
+          exit-code: "1"
+          ignore-unfixed: true
+          vuln-type: os,library
+          severity: CRITICAL,HIGH

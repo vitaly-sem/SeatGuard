@@ -19,8 +19,8 @@ secretGenerator:
     envs:
       - secrets.env
 
-generatorOptions:
-  disableNameSuffixHash: true
+# Keep the generated name suffix: rotating a secret changes the pod template
+# and therefore rolls the Deployment instead of leaving pods on old values.
 
 images:
   - name: seatguard-api

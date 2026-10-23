@@ -391,8 +391,9 @@ Kubernetes manifests live in `deploy/k8s` and use a Kustomize base with dev and
 prod overlays; see [deploy/k8s/README.md](deploy/k8s/README.md) for the resource
 inventory, secret handling and upgrade procedure. CI
 (`.github/workflows/ci.yml`) formats, builds, tests, validates rendered manifests
-with kubeconform, smoke-tests the image against PostgreSQL, scans it with Trivy
-and publishes semver tags to GHCR.
+with kubeconform, then builds the container image exactly once, smoke-tests it
+against PostgreSQL, scans that digest with Trivy and publishes the same digest
+to GHCR (provenance and SBOM attached on pushes).
 Dependabot tracks NuGet, actions and the base image.
 
 ## Design decisions

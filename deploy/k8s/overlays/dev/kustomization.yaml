@@ -12,6 +12,7 @@ patches:
   - path: patch-configmap.yaml
   - path: patch-deployment.yaml
   - path: patch-serviceaccount.yaml
+  - path: patch-pdb.yaml
 
 secretGenerator:
   - name: seatguard-secrets
@@ -24,5 +25,5 @@ secretGenerator:
       - POSTGRES_USER=seatguard
       - POSTGRES_PASSWORD=seatguard
 
-generatorOptions:
-  disableNameSuffixHash: true
+# Keep the generated name suffix: rotating a secret changes the pod template
+# and therefore rolls the Deployment instead of leaving pods on old values.
