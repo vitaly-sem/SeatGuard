@@ -80,7 +80,11 @@ public sealed class Seat : AggregateRoot
             Row = normalizedRow,
             Number = number,
             Label = SeatLabel.Compose(normalizedSection, normalizedRow, number),
-            Price = price,
+
+            // Each seat owns its own Money instance. Sharing one owned instance
+            // across entities makes EF Core track it under several owners and
+            // only persist it for one of them.
+            Price = Money.Create(price.Amount, price.Currency),
             Status = SeatStatus.Available
         };
     }

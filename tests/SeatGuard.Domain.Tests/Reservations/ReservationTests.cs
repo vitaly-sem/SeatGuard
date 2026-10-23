@@ -23,6 +23,24 @@ public sealed class ReservationTests
     }
 
     [Fact]
+    public void Create_uses_the_supplied_reservation_id()
+    {
+        var id = ReservationId.New();
+
+        var reservation = Reservation.Create(
+            EventId.New(),
+            SeatId.New(),
+            CustomerId.Create("customer-1"),
+            Money.Eur(89),
+            HoldDuration,
+            Now,
+            idempotencyKey: null,
+            reservationId: id);
+
+        reservation.Id.Should().Be(id);
+    }
+
+    [Fact]
     public void Create_normalizes_the_idempotency_key()
     {
         var reservation = CreateReservation(idempotencyKey: "  key-123  ");

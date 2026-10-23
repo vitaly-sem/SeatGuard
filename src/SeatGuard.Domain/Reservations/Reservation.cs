@@ -52,7 +52,8 @@ public sealed class Reservation : AggregateRoot
         Money amount,
         TimeSpan holdDuration,
         DateTimeOffset now,
-        string? idempotencyKey = null)
+        string? idempotencyKey = null,
+        ReservationId? reservationId = null)
     {
         ArgumentNullException.ThrowIfNull(amount);
 
@@ -72,14 +73,20 @@ public sealed class Reservation : AggregateRoot
         }
 
         var normalizedKey = NormalizeIdempotencyKey(idempotencyKey);
-        var reservationId = ReservationId.New();
+        var id = reservationId ?? ReservationId.New();
+
+        if (id.IsEmpty)
+        {
+            throw new DomainValidationException("Reservation id cannot be empty.");
+        }
+
         var reservation = new Reservation
         {
-            Id = reservationId,
+            Id = id,
             EventId = eventId,
             SeatId = seatId,
             CustomerId = customerId,
-            Amount = amount,
+            Amount = Money.Create(amount.Amount, amount.Currency),
             Status = ReservationStatus.Pending,
             CreatedAt = now,
             ExpiresAt = now.Add(holdDuration),
@@ -87,7 +94,7 @@ public sealed class Reservation : AggregateRoot
         };
 
         reservation.Raise(new ReservationCreatedDomainEvent(
-            reservationId,
+            id,
             eventId,
             seatId,
             customerId,

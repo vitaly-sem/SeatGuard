@@ -73,7 +73,8 @@ internal sealed class ReserveSeatCommandHandler(
                 seat.Price,
                 settings.Value.HoldDuration,
                 now,
-                idempotencyKey);
+                idempotencyKey,
+                reservationId);
 
             await reservations.AddAsync(reservation, cancellationToken);
             await unitOfWork.SaveChangesAsync(cancellationToken);
