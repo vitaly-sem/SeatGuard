@@ -32,7 +32,6 @@ internal sealed class ConfirmReservationCommandHandler(
         CancellationToken cancellationToken)
     {
         var reservationId = new ReservationId(request.ReservationId);
-        var now = timeProvider.GetUtcNow();
 
         var reservation = await reservations.FindAsync(reservationId, cancellationToken)
             ?? throw new NotFoundException("reservation", request.ReservationId);
@@ -55,7 +54,7 @@ internal sealed class ConfirmReservationCommandHandler(
                 "only pending reservations can be confirmed.");
         }
 
-        if (reservation.IsExpired(now))
+        if (reservation.IsExpired(timeProvider.GetUtcNow()))
         {
             throw new ReservationExpiredException(reservation.Id, reservation.ExpiresAt);
         }
@@ -71,7 +70,7 @@ internal sealed class ConfirmReservationCommandHandler(
 
         try
         {
-            var confirmed = await ConfirmAndSellAsync(reservationId, payment.Reference, now, cancellationToken);
+            var confirmed = await ConfirmAndSellAsync(reservationId, payment.Reference, cancellationToken);
             SeatGuardTelemetry.ReservationsConfirmed.Add(1);
             return confirmed;
         }
@@ -87,12 +86,19 @@ internal sealed class ConfirmReservationCommandHandler(
     private async Task<ReservationDto> ConfirmAndSellAsync(
         ReservationId reservationId,
         string paymentReference,
-        DateTimeOffset now,
         CancellationToken cancellationToken)
     {
         return await unitOfWork.ExecuteInTransactionAsync(
             async token =>
             {
+                // The clock is read again inside the transaction: the payment call
+                // above can outlive the hold, and a timestamp captured before it
+                // would confirm an expired reservation.
+                var confirmedAt = timeProvider.GetUtcNow();
+
+                // The row lock is the only source of truth. The preflight read is
+                // untracked, so this query materialises the row's current state
+                // instead of returning the stale snapshot taken before payment.
                 var reservation = await reservations.FindForUpdateAsync(reservationId, token)
                     ?? throw new NotFoundException("reservation", reservationId.Value);
 
@@ -101,11 +107,17 @@ internal sealed class ConfirmReservationCommandHandler(
                     return reservation.ToDto();
                 }
 
+                if (reservation.Status == ReservationStatus.Expired
+                    || reservation.IsExpired(confirmedAt))
+                {
+                    throw new ReservationExpiredException(reservation.Id, reservation.ExpiresAt);
+                }
+
                 var seat = await seats.FindForUpdateAsync(reservation.SeatId, token)
                     ?? throw new NotFoundException("seat", reservation.SeatId.Value);
 
-                reservation.Confirm(now, paymentReference);
-                seat.Sell(reservation.Id, now);
+                reservation.Confirm(confirmedAt, paymentReference);
+                seat.Sell(reservation.Id, confirmedAt);
 
                 await unitOfWork.SaveChangesAsync(token);
                 cache.Remove(AvailabilityCacheKeys.ForEvent(reservation.EventId));

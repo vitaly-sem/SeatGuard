@@ -9,8 +9,15 @@ internal sealed class ReservationRepository(SeatGuardDbContext dbContext) : IRes
     public async Task AddAsync(Reservation reservation, CancellationToken cancellationToken = default)
         => await dbContext.Reservations.AddAsync(reservation, cancellationToken);
 
+    /// <summary>
+    /// Reads the reservation without tracking it. Confirmation loads a snapshot
+    /// before charging and must not let that stale instance shadow the row it
+    /// locks afterwards: the locked row is the only source of truth.
+    /// </summary>
     public Task<Reservation?> FindAsync(ReservationId id, CancellationToken cancellationToken = default)
-        => dbContext.Reservations.SingleOrDefaultAsync(reservation => reservation.Id == id, cancellationToken);
+        => dbContext.Reservations
+            .AsNoTracking()
+            .SingleOrDefaultAsync(reservation => reservation.Id == id, cancellationToken);
 
     public async Task<Reservation?> FindForUpdateAsync(
         ReservationId id,
