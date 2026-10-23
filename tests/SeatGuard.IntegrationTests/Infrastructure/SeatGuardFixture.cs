@@ -47,6 +47,7 @@ public sealed class SeatGuardFixture : IAsyncLifetime
         "Reservations__HoldDuration",
         "RateLimiting__BookingsPerMinute",
         "RateLimiting__AdminPerMinute",
+        "Observability__Enabled",
     ];
 
     public async Task InitializeAsync()
@@ -65,6 +66,7 @@ public sealed class SeatGuardFixture : IAsyncLifetime
         Environment.SetEnvironmentVariable("Reservations__HoldDuration", "00:05:00");
         Environment.SetEnvironmentVariable("RateLimiting__BookingsPerMinute", "10000");
         Environment.SetEnvironmentVariable("RateLimiting__AdminPerMinute", "10000");
+        Environment.SetEnvironmentVariable("Observability__Enabled", "false");
 
         // The first host applies migrations, which lets Respawn discover tables.
         await using (var bootstrap = await StartAppAsync())
