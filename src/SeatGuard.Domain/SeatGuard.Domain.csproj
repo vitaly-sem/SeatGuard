@@ -1,0 +1,8 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <RootNamespace>SeatGuard.Domain</RootNamespace>
+    <AssemblyName>SeatGuard.Domain</AssemblyName>
+  </PropertyGroup>
+
+</Project>

@@ -1,0 +1,13 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/SeatGuard.Api/SeatGuard.Api.csproj" />
+    <Project Path="src/SeatGuard.Application/SeatGuard.Application.csproj" />
+    <Project Path="src/SeatGuard.Domain/SeatGuard.Domain.csproj" />
+    <Project Path="src/SeatGuard.Infrastructure/SeatGuard.Infrastructure.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/SeatGuard.Application.Tests/SeatGuard.Application.Tests.csproj" />
+    <Project Path="tests/SeatGuard.Domain.Tests/SeatGuard.Domain.Tests.csproj" />
+    <Project Path="tests/SeatGuard.IntegrationTests/SeatGuard.IntegrationTests.csproj" />
+  </Folder>
+</Solution>
