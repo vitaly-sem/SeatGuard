@@ -35,6 +35,13 @@ csharp_style_prefer_primary_constructors = false
 csharp_style_throw_expression = true:suggestion
 csharp_style_unused_value_assignment_preference = discard_variable:suggestion
 
+dotnet_diagnostic.IDE0005.severity = none
+dotnet_diagnostic.IDE0046.severity = none
+dotnet_diagnostic.IDE0008.severity = suggestion
+dotnet_diagnostic.IDE0011.severity = none
+dotnet_diagnostic.IDE0290.severity = none
+dotnet_diagnostic.IDE0300.severity = none
+dotnet_diagnostic.IDE0305.severity = none
 dotnet_diagnostic.CA1002.severity = none
 dotnet_diagnostic.CA1819.severity = none
 dotnet_diagnostic.CA1852.severity = none
@@ -48,6 +55,11 @@ dotnet_diagnostic.CA1866.severity = none
 dotnet_diagnostic.CA1867.severity = none
 dotnet_diagnostic.CA1873.severity = none
 dotnet_diagnostic.CA1515.severity = none
+
+[**/Migrations/*.cs]
+# EF Core scaffolds block-scoped namespaces and terse formatting.
+generated_code = true
+dotnet_diagnostic.IDE0161.severity = none
 
 [tests/**/*.cs]
 # xUnit convention: method names describe behaviour with underscores.

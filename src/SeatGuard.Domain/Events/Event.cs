@@ -15,7 +15,6 @@ namespace SeatGuard.Domain.Events;
 public sealed class Event : AggregateRoot
 {
     private const int MaxSeats = 10_000;
-    private readonly List<SeatSection> _sections = [];
 
     public EventId Id { get; private set; }
 
@@ -31,7 +30,10 @@ public sealed class Event : AggregateRoot
 
     public int SeatCount { get; private set; }
 
-    public IReadOnlyList<SeatSection> Sections => _sections;
+    /// <summary>
+    /// Mutable for EF Core materialization; callers must treat it as read-only.
+    /// </summary>
+    public List<SeatSection> Sections { get; private set; } = [];
 
     private Event()
     {
@@ -65,10 +67,10 @@ public sealed class Event : AggregateRoot
             StartsAt = startsAt,
             Status = EventStatus.Published,
             CreatedAt = now,
-            SeatCount = sectionList.Sum(section => section.Rows * section.SeatsPerRow)
+            SeatCount = sectionList.Sum(section => section.Rows * section.SeatsPerRow),
+            Sections = sectionList
         };
 
-        aggregate._sections.AddRange(sectionList);
         aggregate.Raise(new EventCreatedDomainEvent(aggregate.Id, aggregate.Name, aggregate.SeatCount, now));
 
         return aggregate;

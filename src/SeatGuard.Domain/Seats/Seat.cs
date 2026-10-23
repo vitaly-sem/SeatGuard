@@ -30,6 +30,12 @@ public sealed class Seat : AggregateRoot
 
     public DateTimeOffset? SoldAt { get; private set; }
 
+    /// <summary>
+    /// PostgreSQL xmin exposed as a row version. Used by the optimistic seat
+    /// allocation strategy and maintained by the database.
+    /// </summary>
+    public uint Version { get; private set; }
+
     private Seat()
     {
     }
