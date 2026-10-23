@@ -343,6 +343,7 @@ const ERROR_MESSAGES = {
   'reservation.invalid_state': 'The reservation does not allow this action in its current state.',
   'event.not_found': 'Event not found.',
   'reservation.not_found': 'Reservation not found.',
+  'request.invalid': 'The request did not pass validation.',
   'validation.failed': 'The request did not pass validation.',
 };
 
@@ -491,7 +492,28 @@ async function selectEvent(eventId) {
     renderSelectedSeat();
     syncControls();
   } catch (error) {
-    if (state.eventId === requestedId) handleError(error, 'Loading event');
+    if (state.eventId !== requestedId) return;
+
+    if (error instanceof ApiError && error.status === 404) {
+      // The stored event can belong to a different database (for example after
+      // switching from a local API to the compose stack). Fall back to a live
+      // event instead of polling a missing id forever.
+      localStorage.removeItem('seatguard.eventId');
+      state.eventId = null;
+
+      if (!state.eventFallback) {
+        state.eventFallback = true;
+        try {
+          await loadEvents();
+        } finally {
+          setTimeout(() => { state.eventFallback = false; }, 2000);
+        }
+      }
+
+      return;
+    }
+
+    handleError(error, 'Loading event');
   }
 }
 
@@ -626,7 +648,9 @@ function renderSeatMap() {
     els.seatMap.querySelector(`[data-seat-id="${CSS.escape(activeSeat)}"]`)?.focus({ preventScroll: true });
   }
 
-  els.seatSummary.textContent = `${seats.length.toLocaleString('en-US')} seats across ${sectionOrder.length} section${sectionOrder.length === 1 ? '' : 's'}`;
+  const seatWord = seats.length === 1 ? 'seat' : 'seats';
+  const sectionWord = sectionOrder.length === 1 ? 'section' : 'sections';
+  els.seatSummary.textContent = `${seats.length.toLocaleString('en-US')} ${seatWord} across ${sectionOrder.length} ${sectionWord}`;
 }
 
 function renderStats() {

@@ -177,7 +177,7 @@ app.UseAuthentication();
 app.UseAuthorization();
 app.UseRateLimiter();
 
-if (app.Environment.IsDevelopment())
+if (app.Environment.IsDevelopment() || app.Configuration.GetValue<bool>("Api:ExposeDocumentation"))
 {
     app.MapOpenApi();
     app.MapScalarApiReference(options => options.WithTitle("SeatGuard API"));

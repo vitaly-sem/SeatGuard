@@ -1,0 +1,68 @@
+name: seatguard
+
+services:
+  postgres:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_DB: seatguard
+      POSTGRES_USER: seatguard
+      POSTGRES_PASSWORD: seatguard
+    ports:
+      - "55432:5432"
+    volumes:
+      - seatguard-postgres:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U seatguard -d seatguard"]
+      interval: 3s
+      timeout: 3s
+      retries: 20
+
+  api:
+    build:
+      context: .
+      dockerfile: src/SeatGuard.Api/Dockerfile
+    environment:
+      ASPNETCORE_ENVIRONMENT: Production
+      ASPNETCORE_URLS: http://+:8080
+      ConnectionStrings__SeatGuard: Host=postgres;Port=5432;Database=seatguard;Username=seatguard;Password=seatguard
+      Admin__ApiKey: ${ADMIN_API_KEY:-dev-admin-key}
+      Database__MigrateOnStartup: "true"
+      Api__ExposeDocumentation: "true"
+      Observability__Enabled: "true"
+      Observability__OtlpEndpoint: http://otel-collector:4317
+    ports:
+      - "5080:8080"
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  jaeger:
+    image: jaegertracing/all-in-one:1.62.0
+    environment:
+      COLLECTOR_OTLP_ENABLED: "true"
+    ports:
+      - "16686:16686"
+
+  otel-collector:
+    image: otel/opentelemetry-collector-contrib:0.115.1
+    command: ["--config=/etc/otel/config.yaml"]
+    volumes:
+      - ./deploy/observability/otel-collector.yaml:/etc/otel/config.yaml:ro
+    ports:
+      - "4317:4317"
+      - "4318:4318"
+    depends_on:
+      - jaeger
+
+  prometheus:
+    image: prom/prometheus:v2.55.1
+    command: ["--config.file=/etc/prometheus/prometheus.yml"]
+    volumes:
+      - ./deploy/observability/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+    ports:
+      - "9090:9090"
+    depends_on:
+      - api
+
+volumes:
+  seatguard-postgres:
