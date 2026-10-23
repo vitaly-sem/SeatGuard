@@ -1,0 +1,13 @@
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: seatguard-api
+  labels:
+    app.kubernetes.io/name: seatguard-api
+    app.kubernetes.io/part-of: seatguard
+spec:
+  minAvailable: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: seatguard-api
+      app.kubernetes.io/component: api

@@ -1,0 +1,55 @@
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: seatguard-api
+  labels:
+    app.kubernetes.io/name: seatguard-api
+    app.kubernetes.io/part-of: seatguard
+    release: kube-prometheus-stack
+spec:
+  groups:
+    - name: seatguard-api
+      rules:
+        - alert: SeatGuardApiDown
+          expr: up{namespace="seatguard"} == 0
+          for: 2m
+          labels:
+            severity: critical
+          annotations:
+            summary: SeatGuard API is unavailable
+            description: Prometheus cannot scrape any SeatGuard API pod.
+
+        - alert: SeatGuardHighErrorRate
+          expr: |
+            sum(rate(http_server_request_duration_seconds_count{namespace="seatguard",http_response_status_code=~"5.."}[5m]))
+            /
+            clamp_min(sum(rate(http_server_request_duration_seconds_count{namespace="seatguard"}[5m])), 1)
+            > 0.05
+          for: 5m
+          labels:
+            severity: warning
+          annotations:
+            summary: SeatGuard API 5xx rate above 5%
+            description: More than 5% of API requests have failed with a 5xx status for five minutes.
+
+        - alert: SeatGuardReservationLatencyHigh
+          expr: |
+            histogram_quantile(
+              0.95,
+              sum(rate(seatguard_reservation_duration_milliseconds_bucket{namespace="seatguard"}[5m])) by (le)
+            ) > 250
+          for: 10m
+          labels:
+            severity: warning
+          annotations:
+            summary: SeatGuard reservation p95 latency above 250 ms
+            description: The p95 reservation latency has exceeded 250 ms for ten minutes.
+
+        - alert: SeatGuardReservationConflictSpike
+          expr: sum(rate(seatguard_reservations_conflicts_total{namespace="seatguard"}[5m])) > 5
+          for: 10m
+          labels:
+            severity: warning
+          annotations:
+            summary: SeatGuard reservation conflicts are elevated
+            description: More than five reservation conflicts per second on average over ten minutes.

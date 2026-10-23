@@ -1,0 +1,19 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: seatguard-config
+  labels:
+    app.kubernetes.io/name: seatguard-api
+    app.kubernetes.io/part-of: seatguard
+data:
+  ASPNETCORE_ENVIRONMENT: Production
+  ASPNETCORE_URLS: http://+:8080
+  Database__MigrateOnStartup: "false"
+  Api__ExposeDocumentation: "false"
+  Observability__Enabled: "true"
+  Observability__ServiceName: seatguard-api
+  Observability__OtlpEndpoint: http://otel-collector.observability.svc.cluster.local:4317
+  Reservations__SweeperEnabled: "true"
+  Outbox__Enabled: "true"
+  RateLimiting__BookingsPerMinute: "240"
+  RateLimiting__AdminPerMinute: "60"

@@ -1,0 +1,9 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: seatguard-config
+data:
+  Observability__OtlpEndpoint: ""
+  Api__ExposeDocumentation: "true"
+  RateLimiting__BookingsPerMinute: "1200"
+  RateLimiting__AdminPerMinute: "120"

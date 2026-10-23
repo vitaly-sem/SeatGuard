@@ -132,6 +132,15 @@ if (observabilityEnabled)
 
 var app = builder.Build();
 
+if (args.Contains("--migrate"))
+{
+    await using var migrationScope = app.Services.CreateAsyncScope();
+    var migrationContext = migrationScope.ServiceProvider.GetRequiredService<SeatGuardDbContext>();
+    await migrationContext.Database.MigrateAsync();
+    app.Logger.LogInformation("Database migrations applied");
+    return;
+}
+
 if (builder.Configuration.GetValue<bool>("Database:MigrateOnStartup"))
 {
     await using var scope = app.Services.CreateAsyncScope();

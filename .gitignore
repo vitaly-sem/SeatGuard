@@ -485,3 +485,6 @@ $RECYCLE.BIN/
 
 # Vim temporary swap files
 *.swp
+
+# Local Kubernetes secrets
+deploy/k8s/overlays/prod/secrets.env

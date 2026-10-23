@@ -1,0 +1,21 @@
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: seatguard-api
+  labels:
+    app.kubernetes.io/name: seatguard-api
+    app.kubernetes.io/part-of: seatguard
+    release: kube-prometheus-stack
+spec:
+  namespaceSelector:
+    matchNames:
+      - seatguard
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: seatguard-api
+      app.kubernetes.io/component: api
+  endpoints:
+    - port: http
+      path: /metrics
+      interval: 15s
+      scrapeTimeout: 10s
