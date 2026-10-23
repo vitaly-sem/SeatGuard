@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="SeatGuard">
+  <defs>
+    <linearGradient id="g" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#0f766e"/>
+      <stop offset="1" stop-color="#115e59"/>
+    </linearGradient>
+  </defs>
+  <rect width="64" height="64" rx="16" fill="url(#g)"/>
+  <path d="M32 11 49 17v14c0 10.5-7 18.3-17 22-10-3.7-17-11.5-17-22V17l17-6z" fill="none" stroke="#ecfdf5" stroke-width="3" stroke-linejoin="round"/>
+  <path d="M25 26v9h14v-9M22 35h20v7H22z" fill="none" stroke="#ecfdf5" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>

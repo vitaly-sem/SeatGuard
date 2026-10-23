@@ -72,6 +72,8 @@ if (builder.Configuration.GetValue<bool>("Database:MigrateOnStartup"))
 
 app.UseMiddleware<CorrelationIdMiddleware>();
 app.UseExceptionHandler();
+app.UseDefaultFiles();
+app.UseStaticFiles();
 app.UseAuthentication();
 app.UseAuthorization();
 app.UseRateLimiter();
@@ -82,12 +84,7 @@ if (app.Environment.IsDevelopment())
     app.MapScalarApiReference(options => options.WithTitle("SeatGuard API"));
 }
 
-app.MapGet("/", () => Results.Ok(new
-{
-    service = "SeatGuard",
-    status = "ok",
-    documentation = "/scalar"
-}));
+app.MapGet("/", () => Results.Redirect("/ui/"));
 
 app.MapEventEndpoints();
 app.MapReservationEndpoints();
