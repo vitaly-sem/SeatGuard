@@ -1,3 +1,5 @@
+using System.Security.Cryptography;
+using System.Text.Json;
 using MediatR;
 using Microsoft.Extensions.Options;
 using SeatGuard.Api.Authentication;
@@ -107,6 +109,33 @@ internal static class EventEndpoints
 
         httpContext.Response.Headers.CacheControl = $"private, max-age={maxAge}";
 
+        var etag = BuildETag(result);
+        httpContext.Response.Headers.ETag = etag;
+
+        if (httpContext.Request.Headers.IfNoneMatch.Contains(etag, StringComparer.Ordinal))
+        {
+            return Results.StatusCode(StatusCodes.Status304NotModified);
+        }
+
         return Results.Ok(result);
+    }
+
+    /// <summary>
+    /// Hashes the seat map without <c>GeneratedAt</c>: a cached response and a
+    /// fresh one with the same seats must produce the same validator.
+    /// </summary>
+    private static string BuildETag(EventAvailabilityDto availability)
+    {
+        var payload = JsonSerializer.SerializeToUtf8Bytes(new
+        {
+            availability.EventId,
+            availability.Name,
+            availability.StartsAt,
+            availability.Seats,
+        });
+
+        var hash = SHA256.HashData(payload);
+
+        return $"\"{Convert.ToHexString(hash.AsSpan(0, 16))}\"";
     }
 }

@@ -9,7 +9,7 @@ public sealed class ReservationSettings
 
     public TimeSpan HoldDuration { get; set; } = TimeSpan.FromMinutes(10);
 
-    public TimeSpan AvailabilityCacheTtl { get; set; } = TimeSpan.FromSeconds(2);
+    public TimeSpan AvailabilityCacheTtl { get; set; } = TimeSpan.FromSeconds(10);
 
     public TimeSpan SweeperInterval { get; set; } = TimeSpan.FromSeconds(15);
 

@@ -66,6 +66,8 @@ const state = {
   eventId: null,
   eventDetails: null,
   availability: null,
+  availabilityEtag: null,
+  availabilityEtagEventId: null,
   selectedSeatId: null,
   reservation: null,
   lastHold: null,
@@ -268,6 +270,7 @@ async function apiFetch(path, { method = 'GET', body, headers = {}, log = true }
     status: response.status,
     data,
     ms,
+    etag: response.headers.get('ETag'),
     problem: response.ok ? null : data,
     network: false,
   };
@@ -453,6 +456,8 @@ async function selectEvent(eventId) {
   state.eventId = eventId;
   state.eventDetails = null;
   state.availability = null;
+  state.availabilityEtag = null;
+  state.availabilityEtagEventId = null;
   state.selectedSeatId = null;
   state.reservation = null;
   state.lastHold = null;
@@ -476,7 +481,7 @@ async function selectEvent(eventId) {
   try {
     const [details, availability] = await Promise.all([
       request(`${API}/events/${eventId}`),
-      request(`${API}/events/${eventId}/availability`),
+      fetchAvailability(eventId),
     ]);
 
     if (state.eventId !== requestedId) return;
@@ -882,10 +887,16 @@ async function cancelReservation() {
 
 async function refreshReservation({ quiet = false } = {}) {
   const current = state.reservation;
+  const eventId = state.eventId;
   if (!current) return;
 
   try {
     const fresh = await request(`${API}/reservations/${current.id}`);
+
+    // The user may have switched events or started another hold while this
+    // request was in flight; a late response must not replace that state.
+    if (state.eventId !== eventId || state.reservation?.id !== current.id) return;
+
     state.reservation = fresh;
     renderReservation();
     renderSelectedSeat();
@@ -1211,17 +1222,44 @@ function metric(label, value) {
 
 // ---------------------------------------------------------------- refresh
 
+async function fetchAvailability(eventId, { log = true } = {}) {
+  const conditional = state.availabilityEtag && state.availabilityEtagEventId === eventId
+    ? { 'If-None-Match': state.availabilityEtag }
+    : {};
+
+  const result = await apiFetch(`${API}/events/${eventId}/availability`, { headers: conditional, log });
+
+  if (result.status === 304) {
+    return null;
+  }
+
+  if (!result.ok) {
+    throw new ApiError(result);
+  }
+
+  state.availabilityEtag = result.etag;
+  state.availabilityEtagEventId = eventId;
+
+  return result.data;
+}
+
 async function refreshAvailability({ quiet = false, log = true } = {}) {
   if (!state.eventId) return;
 
   const eventId = state.eventId;
 
   try {
-    const availability = await request(`${API}/events/${eventId}/availability`, { log });
+    const availability = await fetchAvailability(eventId, { log });
     if (state.eventId !== eventId) return;
 
-    state.availability = availability;
     state.lastUpdated = new Date();
+
+    if (!availability) {
+      renderUpdatedAt();
+      return;
+    }
+
+    state.availability = availability;
 
     renderSeatMap();
     renderStats();

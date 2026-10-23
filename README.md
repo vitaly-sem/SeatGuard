@@ -231,7 +231,7 @@ curl -s -X POST "http://localhost:5080/api/v1/reservations/$RESERVATION_ID/confi
 | `POST` | `/api/v1/events` | Requires `X-Api-Key`; admin rate limit |
 | `GET` | `/api/v1/events` | Paginated list |
 | `GET` | `/api/v1/events/{id}` | Event and sections |
-| `GET` | `/api/v1/events/{id}/availability` | Read model, `Cache-Control: private, max-age=2` |
+| `GET` | `/api/v1/events/{id}/availability` | Read model, `Cache-Control: private, max-age=10`, `ETag` |
 | `POST` | `/api/v1/reservations` | Optional `Idempotency-Key`; 201 new, 200 replay |
 | `GET` | `/api/v1/reservations/{id}` | Includes ticket code once confirmed |
 | `POST` | `/api/v1/reservations/{id}/confirm` | Idempotent; charges then issues a ticket |
@@ -243,10 +243,13 @@ Errors use RFC 9457 Problem Details with stable codes such as
 `request.invalid`. Every response carries `X-Correlation-ID`, and the request log
 records the same value.
 
-Availability reads are served from a per-replica in-memory cache with a two
-second TTL. Mutations invalidate the entry in the process that served it; other
-replicas converge within the TTL. This is a deliberate trade-off for a read-heavy
-seat map, not a source of truth.
+Availability reads are served from a per-replica in-memory cache with a ten
+second TTL that deliberately outlives the console's three second poll, so most
+polls are cache hits. Mutations invalidate the entry in the process that served
+it; other replicas converge within the TTL. The response also carries an `ETag`,
+and conditional requests return `304 Not Modified` without serialising the seat
+map again. This is a deliberate trade-off for a read-heavy seat map, not a
+source of truth.
 
 ## Configuration
 
@@ -258,7 +261,7 @@ double-underscore form.
 | `ConnectionStrings__SeatGuard` | `…Port=55432…` | PostgreSQL connection string |
 | `Admin__ApiKey` | empty (locked) | `X-Api-Key` for event creation |
 | `Reservations__HoldDuration` | `00:10:00` | Pending hold TTL |
-| `Reservations__AvailabilityCacheTtl` | `00:00:02` | Availability cache TTL |
+| `Reservations__AvailabilityCacheTtl` | `00:00:10` | Availability cache TTL |
 | `Reservations__SweeperInterval` | `00:00:15` | Sweeper poll interval |
 | `Reservations__SweeperBatchSize` | `100` | Rows claimed per sweep |
 | `Reservations__ConcurrencyStrategy` | `Pessimistic` | `Pessimistic` or `Optimistic` |

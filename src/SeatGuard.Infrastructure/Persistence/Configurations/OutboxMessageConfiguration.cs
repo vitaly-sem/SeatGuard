@@ -24,5 +24,11 @@ internal sealed class OutboxMessageConfiguration : IEntityTypeConfiguration<Outb
         builder.HasIndex(message => new { message.ProcessedAt, message.FailedAt, message.NextAttemptAt })
             .HasDatabaseName("ix_outbox_pending")
             .HasFilter("\"processed_at\" IS NULL AND \"failed_at\" IS NULL");
+
+        // Retention scans only processed rows, ordered by processing time. A
+        // partial index keeps that query off the growing table.
+        builder.HasIndex(message => message.ProcessedAt)
+            .HasDatabaseName("ix_outbox_processed_at")
+            .HasFilter("\"processed_at\" IS NOT NULL");
     }
 }

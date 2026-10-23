@@ -285,6 +285,10 @@ namespace SeatGuard.Infrastructure.Persistence.Migrations
                     b.HasKey("Id")
                         .HasName("pk_outbox_messages");
 
+                    b.HasIndex("ProcessedAt")
+                        .HasDatabaseName("ix_outbox_processed_at")
+                        .HasFilter("\"processed_at\" IS NOT NULL");
+
                     b.HasIndex("ProcessedAt", "FailedAt", "NextAttemptAt")
                         .HasDatabaseName("ix_outbox_pending")
                         .HasFilter("\"processed_at\" IS NULL AND \"failed_at\" IS NULL");

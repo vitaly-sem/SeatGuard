@@ -88,7 +88,7 @@ public sealed class BookingApiTests
 
         var response = await client.GetAsync($"/api/v1/events/{eventId}/availability");
         response.StatusCode.Should().Be(HttpStatusCode.OK);
-        response.Headers.CacheControl!.MaxAge.Should().Be(TimeSpan.FromSeconds(2));
+        response.Headers.CacheControl!.MaxAge.Should().Be(TimeSpan.FromSeconds(10));
 
         var availability = await response.Content.ReadFromJsonAsync<JsonElement>();
         availability.GetProperty("seats").GetArrayLength().Should().Be(6);
@@ -97,6 +97,38 @@ public sealed class BookingApiTests
 
         var list = await client.GetFromJsonAsync<JsonElement>("/api/v1/events?page=1&pageSize=10");
         list.GetProperty("items").GetArrayLength().Should().Be(1);
+    }
+
+    [Fact]
+    public async Task Availability_SupportsConditionalGetAndChangesAfterAMutation()
+    {
+        await using var app = await _fixture.StartAppAsync();
+        var client = app.Client;
+
+        var eventId = await client.CreateEventAsync(_fixture.Clock.GetUtcNow().AddDays(30), rows: 1, seatsPerRow: 1);
+        var seatId = (await client.GetAvailabilityAsync(eventId)).SeatId("Orchestra · A1");
+
+        var first = await client.GetAsync($"/api/v1/events/{eventId}/availability");
+        first.StatusCode.Should().Be(HttpStatusCode.OK);
+
+        var etag = first.Headers.ETag;
+        etag.Should().NotBeNull();
+
+        using var conditional = new HttpRequestMessage(HttpMethod.Get, $"/api/v1/events/{eventId}/availability");
+        conditional.Headers.IfNoneMatch.Add(etag!);
+
+        var notModified = await client.SendAsync(conditional);
+        notModified.StatusCode.Should().Be(HttpStatusCode.NotModified);
+
+        var (reserve, _) = await client.ReserveAsync(eventId, seatId, "customer-1");
+        reserve.StatusCode.Should().Be(HttpStatusCode.Created);
+
+        using var afterMutation = new HttpRequestMessage(HttpMethod.Get, $"/api/v1/events/{eventId}/availability");
+        afterMutation.Headers.IfNoneMatch.Add(etag!);
+
+        var refreshed = await client.SendAsync(afterMutation);
+        refreshed.StatusCode.Should().Be(HttpStatusCode.OK);
+        refreshed.Headers.ETag.Should().NotBe(etag);
     }
 
     [Fact]

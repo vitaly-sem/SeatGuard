@@ -67,6 +67,13 @@ public sealed class OutboxRetentionTests
 
             rows.Should().HaveCount(1);
             rows.Should().OnlyContain(row => row.ProcessedAt == null && row.FailedAt == null);
+
+            var indexes = await db.Database
+                .SqlQueryRaw<string>(
+                    "SELECT indexname AS \"Value\" FROM pg_indexes WHERE schemaname = 'public' AND tablename = 'outbox_messages'")
+                .ToListAsync();
+
+            indexes.Should().Contain("ix_outbox_processed_at");
         }
     }
 }
