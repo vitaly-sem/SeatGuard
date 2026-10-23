@@ -98,7 +98,7 @@ jobs:
         run: docker build --tag seatguard-api:ci --file src/SeatGuard.Api/Dockerfile .
 
       - name: Scan image with Trivy
-        uses: aquasecurity/trivy-action@0.28.0
+        uses: aquasecurity/trivy-action@v0.36.0
         with:
           image-ref: seatguard-api:ci
           format: table
