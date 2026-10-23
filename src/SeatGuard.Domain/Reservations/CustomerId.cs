@@ -22,6 +22,20 @@ public readonly partial record struct CustomerId(string Value)
         return new CustomerId(normalized);
     }
 
+    public static bool TryCreate(string? value, out CustomerId customerId)
+    {
+        var normalized = value?.Trim();
+
+        if (string.IsNullOrEmpty(normalized) || !Pattern().IsMatch(normalized))
+        {
+            customerId = default;
+            return false;
+        }
+
+        customerId = new CustomerId(normalized);
+        return true;
+    }
+
     public bool IsEmpty => string.IsNullOrEmpty(Value);
 
     public override string ToString() => Value;

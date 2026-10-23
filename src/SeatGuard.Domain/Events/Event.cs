@@ -74,6 +74,23 @@ public sealed class Event : AggregateRoot
         return aggregate;
     }
 
+    /// <summary>
+    /// Guards the booking path. A cancelled event, or one that has already
+    /// started, must not accept new reservations.
+    /// </summary>
+    public void EnsureBookable(DateTimeOffset now)
+    {
+        if (Status != EventStatus.Published)
+        {
+            throw new EventNotOnSaleException(Id, $"status is {Status}.");
+        }
+
+        if (now >= StartsAt)
+        {
+            throw new EventNotOnSaleException(Id, "the event has already started.");
+        }
+    }
+
     public void Cancel(DateTimeOffset now)
     {
         if (Status == EventStatus.Cancelled)

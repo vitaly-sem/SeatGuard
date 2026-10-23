@@ -10,6 +10,11 @@
   </ItemGroup>
 
   <ItemGroup>
+    <InternalsVisibleTo Include="SeatGuard.Application.Tests" />
+    <InternalsVisibleTo Include="SeatGuard.IntegrationTests" />
+  </ItemGroup>
+
+  <ItemGroup>
     <PackageReference Include="MediatR" />
     <PackageReference Include="FluentValidation" />
     <PackageReference Include="FluentValidation.DependencyInjectionExtensions" />
