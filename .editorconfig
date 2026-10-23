@@ -49,5 +49,10 @@ dotnet_diagnostic.CA1867.severity = none
 dotnet_diagnostic.CA1873.severity = none
 dotnet_diagnostic.CA1515.severity = none
 
+[tests/**/*.cs]
+# xUnit convention: method names describe behaviour with underscores.
+dotnet_diagnostic.CA1707.severity = none
+dotnet_diagnostic.CA1861.severity = none
+
 [*.{yml,yaml}]
 indent_style = space
