@@ -277,7 +277,11 @@ double-underscore form.
 | `Observability__Enabled` | `true` | Enable OTel instrumentation |
 | `Observability__OtlpEndpoint` | empty | OTLP gRPC endpoint; empty disables export |
 | `RateLimiting__BookingsPerMinute` | `120` | Per-IP booking requests |
-| `RateLimiting__AdminPerMinute` | `30` | Per-IP admin requests |
+| `RateLimiting__AdminPerMinute` | `30` | Per-key admin attempts (invalid keys are throttled too) |
+| `RateLimiting__ReadsPerMinute` | `300` | Per-IP read requests |
+| `ForwardedHeaders__Enabled` | `false` | Take the client IP from `X-Forwarded-For` behind a trusted proxy |
+| `ForwardedHeaders__KnownProxies` | empty | Trusted proxy addresses (`__0`, `__1`, …) |
+| `ForwardedHeaders__KnownNetworks` | empty | Trusted proxy CIDRs (`__0`, `__1`, …) |
 
 Connection strings in the samples include `Gss Encryption Mode=Disable`: the
 chiseled runtime does not ship the Kerberos library, and password authentication

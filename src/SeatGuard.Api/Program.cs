@@ -1,6 +1,10 @@
+using System.Net;
+using System.Security.Cryptography;
+using System.Text;
 using System.Threading.RateLimiting;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Diagnostics.HealthChecks;
+using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
 using OpenTelemetry.Metrics;
@@ -55,30 +59,71 @@ builder.Services.AddAuthorizationBuilder()
 
 var bookingsPerMinute = builder.Configuration.GetValue("RateLimiting:BookingsPerMinute", 120);
 var adminPerMinute = builder.Configuration.GetValue("RateLimiting:AdminPerMinute", 30);
+var readsPerMinute = builder.Configuration.GetValue("RateLimiting:ReadsPerMinute", 300);
+var forwardedHeadersEnabled = builder.Configuration.GetValue("ForwardedHeaders:Enabled", false);
+
+if (forwardedHeadersEnabled)
+{
+    builder.Services.Configure<ForwardedHeadersOptions>(options =>
+    {
+        options.ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto;
+        options.ForwardLimit = 2;
+
+        foreach (var proxy in builder.Configuration.GetSection("ForwardedHeaders:KnownProxies").Get<string[]>() ?? [])
+        {
+            options.KnownProxies.Add(IPAddress.Parse(proxy));
+        }
+
+        foreach (var network in builder.Configuration.GetSection("ForwardedHeaders:KnownNetworks").Get<string[]>() ?? [])
+        {
+            options.KnownIPNetworks.Add(System.Net.IPNetwork.Parse(network));
+        }
+    });
+}
 
 builder.Services.AddRateLimiter(options =>
 {
     options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
 
     options.AddPolicy("bookings", context => RateLimitPartition.GetFixedWindowLimiter(
-        partitionKey: context.Connection.RemoteIpAddress?.ToString() ?? "unknown",
-        factory: _ => new FixedWindowRateLimiterOptions
-        {
-            PermitLimit = bookingsPerMinute,
-            Window = TimeSpan.FromMinutes(1),
-            QueueLimit = 0,
-            AutoReplenishment = true
-        }));
+        partitionKey: ClientPartitionKey(context),
+        factory: _ => FixedWindow(bookingsPerMinute)));
 
+    // Run before authentication and partition by the presented key: a flood of
+    // bad keys is throttled without exhausting the valid administrator's bucket.
+    // The raw key is hashed so limiter diagnostics never contain a credential.
     options.AddPolicy("admin", context => RateLimitPartition.GetFixedWindowLimiter(
-        partitionKey: context.Connection.RemoteIpAddress?.ToString() ?? "unknown",
-        factory: _ => new FixedWindowRateLimiterOptions
+        partitionKey: AdminPartitionKey(context),
+        factory: _ => FixedWindow(adminPerMinute)));
+
+    options.AddPolicy("reads", context => RateLimitPartition.GetFixedWindowLimiter(
+        partitionKey: ClientPartitionKey(context),
+        factory: _ => FixedWindow(readsPerMinute)));
+
+    static FixedWindowRateLimiterOptions FixedWindow(int permitLimit) => new()
+    {
+        PermitLimit = permitLimit,
+        Window = TimeSpan.FromMinutes(1),
+        QueueLimit = 0,
+        AutoReplenishment = true
+    };
+
+    static string ClientPartitionKey(HttpContext context)
+        => context.Connection.RemoteIpAddress?.ToString() ?? "unknown";
+
+    static string AdminPartitionKey(HttpContext context)
+    {
+        var key = context.Request.Headers[ApiKeyAuthenticationHandler.HeaderName].ToString();
+
+        if (string.IsNullOrWhiteSpace(key))
         {
-            PermitLimit = adminPerMinute,
-            Window = TimeSpan.FromMinutes(1),
-            QueueLimit = 0,
-            AutoReplenishment = true
-        }));
+            return $"anonymous:{ClientPartitionKey(context)}";
+        }
+
+        var hash = SHA256.HashData(Encoding.UTF8.GetBytes(key));
+
+        return $"key:{Convert.ToHexString(hash)}";
+    }
 });
 
 builder.Services.AddOpenApi();
@@ -184,9 +229,18 @@ if (!app.Environment.IsEnvironment("Testing"))
 app.UseExceptionHandler();
 app.UseDefaultFiles();
 app.UseStaticFiles();
+
+// The client address must be resolved from trusted proxy headers before the
+// rate limiter partitions requests, and limiting must run before authentication
+// so failed admin keys consume a budget instead of short-circuiting at 401.
+if (forwardedHeadersEnabled)
+{
+    app.UseForwardedHeaders();
+}
+
+app.UseRateLimiter();
 app.UseAuthentication();
 app.UseAuthorization();
-app.UseRateLimiter();
 
 if (app.Environment.IsDevelopment() || app.Configuration.GetValue<bool>("Api:ExposeDocumentation"))
 {

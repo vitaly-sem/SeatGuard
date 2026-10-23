@@ -50,6 +50,10 @@ public sealed class SeatGuardFixture : IAsyncLifetime
         "Reservations__HoldDuration",
         "RateLimiting__BookingsPerMinute",
         "RateLimiting__AdminPerMinute",
+        "RateLimiting__ReadsPerMinute",
+        "ForwardedHeaders__Enabled",
+        "ForwardedHeaders__KnownProxies__0",
+        "ForwardedHeaders__KnownProxies__1",
         "Observability__Enabled",
     ];
 
@@ -70,6 +74,8 @@ public sealed class SeatGuardFixture : IAsyncLifetime
         Environment.SetEnvironmentVariable("Reservations__HoldDuration", "00:05:00");
         Environment.SetEnvironmentVariable("RateLimiting__BookingsPerMinute", "10000");
         Environment.SetEnvironmentVariable("RateLimiting__AdminPerMinute", "10000");
+        Environment.SetEnvironmentVariable("RateLimiting__ReadsPerMinute", "10000");
+        Environment.SetEnvironmentVariable("ForwardedHeaders__Enabled", "false");
         Environment.SetEnvironmentVariable("Observability__Enabled", "false");
 
         // The first host applies migrations, which lets Respawn discover tables.

@@ -31,6 +31,7 @@ internal static class ReservationEndpoints
         group.MapGet("/{id:guid}", GetReservation)
             .WithName("GetReservation")
             .WithSummary("Returns a reservation and its ticket code")
+            .RequireRateLimiting("reads")
             .Produces<ReservationDto>()
             .ProducesProblem(StatusCodes.Status404NotFound);
 

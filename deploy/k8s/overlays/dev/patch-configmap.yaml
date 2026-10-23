@@ -7,3 +7,4 @@ data:
   Api__ExposeDocumentation: "true"
   RateLimiting__BookingsPerMinute: "1200"
   RateLimiting__AdminPerMinute: "120"
+  RateLimiting__ReadsPerMinute: "2400"

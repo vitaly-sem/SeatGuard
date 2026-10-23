@@ -17,3 +17,8 @@ data:
   Outbox__Enabled: "true"
   RateLimiting__BookingsPerMinute: "240"
   RateLimiting__AdminPerMinute: "60"
+  RateLimiting__ReadsPerMinute: "600"
+  ForwardedHeaders__Enabled: "true"
+  ForwardedHeaders__KnownNetworks__0: "10.0.0.0/8"
+  ForwardedHeaders__KnownNetworks__1: "172.16.0.0/12"
+  ForwardedHeaders__KnownNetworks__2: "192.168.0.0/16"

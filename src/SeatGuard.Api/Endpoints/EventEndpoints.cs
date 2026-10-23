@@ -32,18 +32,21 @@ internal static class EventEndpoints
         group.MapGet("/", GetEvents)
             .WithName("GetEvents")
             .WithSummary("Lists events with pagination")
+            .RequireRateLimiting("reads")
             .Produces<PagedResult<EventSummaryDto>>()
             .ProducesProblem(StatusCodes.Status400BadRequest);
 
         group.MapGet("/{id:guid}", GetEvent)
             .WithName("GetEvent")
             .WithSummary("Returns event details and its seat sections")
+            .RequireRateLimiting("reads")
             .Produces<EventDetailsDto>()
             .ProducesProblem(StatusCodes.Status404NotFound);
 
         group.MapGet("/{id:guid}/availability", GetAvailability)
             .WithName("GetEventAvailability")
             .WithSummary("Returns the availability read model, cached for a short TTL")
+            .RequireRateLimiting("reads")
             .Produces<EventAvailabilityDto>()
             .ProducesProblem(StatusCodes.Status404NotFound);
 
