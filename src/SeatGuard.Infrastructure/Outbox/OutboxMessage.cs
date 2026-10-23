@@ -42,6 +42,13 @@ public sealed class OutboxMessage
         NextAttemptAt = now
     };
 
+    /// <summary>
+    /// Pushes the next attempt into the future so another dispatcher skips the
+    /// row while this one publishes it. The claim itself is committed before any
+    /// network call, so no database transaction stays open during publishing.
+    /// </summary>
+    public void Lease(DateTimeOffset until) => NextAttemptAt = until;
+
     public void MarkProcessed(DateTimeOffset now)
     {
         ProcessedAt = now;

@@ -3,12 +3,14 @@ using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using SeatGuard.Application.Abstractions.Caching;
+using SeatGuard.Application.Abstractions.Messaging;
 using SeatGuard.Application.Abstractions.Payments;
 using SeatGuard.Application.Abstractions.Persistence;
 using SeatGuard.Application.Abstractions.Services;
 using SeatGuard.Application.Common;
 using SeatGuard.Infrastructure.Caching;
 using SeatGuard.Infrastructure.Concurrency;
+using SeatGuard.Infrastructure.Outbox;
 using SeatGuard.Infrastructure.Payments;
 using SeatGuard.Infrastructure.Persistence;
 using SeatGuard.Infrastructure.Persistence.Repositories;
@@ -39,6 +41,13 @@ public static class DependencyInjection
         services.AddSingleton<IAvailabilityReadModelCache, MemoryAvailabilityReadModelCache>();
         services.AddSingleton<IPaymentGateway, SimulatedPaymentGateway>();
 
+        services.AddSingleton<IIntegrationEventPublisher, LoggingIntegrationEventPublisher>();
+        services.AddScoped<IOutboxDispatcher, OutboxDispatcher>();
+        if (configuration.GetValue("Outbox:Enabled", true))
+        {
+            services.AddHostedService<OutboxDispatcherService>();
+        }
+
         services.AddScoped<IExpiredReservationSweeper, ExpiredReservationSweeper>();
         if (configuration.GetValue("Reservations:SweeperEnabled", true))
         {
@@ -58,6 +67,14 @@ public static class DependencyInjection
                 ? provider.GetRequiredService<OptimisticSeatAllocationStrategy>()
                 : provider.GetRequiredService<PessimisticSeatAllocationStrategy>();
         });
+
+        services.AddOptions<OutboxSettings>()
+            .Bind(configuration.GetSection(OutboxSettings.SectionName))
+            .Validate(settings => settings.PollInterval > TimeSpan.Zero, "Outbox:PollInterval must be positive.")
+            .Validate(settings => settings.BatchSize is > 0 and <= 1000, "Outbox:BatchSize must be between 1 and 1000.")
+            .Validate(settings => settings.MaxAttempts > 0, "Outbox:MaxAttempts must be positive.")
+            .Validate(settings => settings.LeaseDuration > TimeSpan.Zero, "Outbox:LeaseDuration must be positive.")
+            .ValidateOnStart();
 
         services.AddOptions<ReservationSettings>()
             .Bind(configuration.GetSection(ReservationSettings.SectionName))
