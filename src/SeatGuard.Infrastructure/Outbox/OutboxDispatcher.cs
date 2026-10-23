@@ -104,7 +104,7 @@ internal sealed class OutboxDispatcher(
 
     private static TimeSpan ComputeBackoff(int attempts)
     {
-        var seconds = Math.Min(300, Math.Pow(2, Math.Max(1, attempts)));
+        var seconds = Math.Min(300, Math.Pow(2, attempts + 1));
         return TimeSpan.FromSeconds(seconds);
     }
 }

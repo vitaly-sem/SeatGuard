@@ -704,7 +704,7 @@ function syncControls() {
   } else if (!seat) {
     hideBookingHint();
   } else if (seat.status === 'Sold') {
-    showBookingHint('This seat is sold. A hold request will be rejected with 409 seat.sold.', true);
+    showBookingHint('This seat is sold. A hold request will be rejected with 409 seat.not_available.', true);
   } else if (seat.status === 'Held') {
     showBookingHint('Held by another customer. Reserve it to observe the 409 seat.not_available conflict.', true);
   } else if (state.reservation?.status === 'Confirmed') {
