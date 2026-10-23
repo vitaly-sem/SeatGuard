@@ -116,15 +116,18 @@ jobs:
 
       - name: Smoke-test migrations, readiness and UI
         run: |
-          connection="Host=127.0.0.1;Port=5432;Database=seatguard;Username=seatguard;Password=seatguard"
+          connection="Host=host.docker.internal;Port=5432;Database=seatguard;Username=seatguard;Password=seatguard"
 
-          docker run --rm --network host \
+          docker run --rm \
+            --add-host=host.docker.internal:host-gateway \
             -e ConnectionStrings__SeatGuard="$connection" \
             -e Admin__ApiKey=ci-admin-key \
             -e Observability__Enabled=false \
             seatguard-api:ci --migrate
 
-          docker run --detach --name seatguard-smoke --network host \
+          docker run --detach --name seatguard-smoke \
+            --add-host=host.docker.internal:host-gateway \
+            --publish 18080:8080 \
             -e ASPNETCORE_URLS=http://+:8080 \
             -e ConnectionStrings__SeatGuard="$connection" \
             -e Admin__ApiKey=ci-admin-key \
@@ -132,7 +135,7 @@ jobs:
             seatguard-api:ci
 
           for _ in $(seq 1 30); do
-            if curl --fail --silent http://127.0.0.1:8080/health/ready > /tmp/ready.json; then
+            if curl --fail --silent http://127.0.0.1:18080/health/ready > /tmp/ready.json; then
               break
             fi
             sleep 1
@@ -140,7 +143,7 @@ jobs:
 
           cat /tmp/ready.json
           grep --quiet '"status":"Healthy"' /tmp/ready.json
-          curl --fail --silent http://127.0.0.1:8080/ui/ | grep --quiet "Booking console"
+          curl --fail --silent http://127.0.0.1:18080/ui/ | grep --quiet "Booking console"
 
       - name: Dump container logs
         if: always()
