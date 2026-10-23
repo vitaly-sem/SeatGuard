@@ -231,6 +231,9 @@ exercised 50 parallel requests through the real API with the same result.
 | `Reservations__SweeperEnabled` | `true` | Toggle the expiry worker |
 | `Outbox__Enabled` | `true` | Toggle the dispatcher |
 | `Outbox__MaxAttempts` | `10` | Dead-letter threshold |
+| `Outbox__RetentionDays` | `7` | Days to keep processed rows; `0` disables cleanup |
+| `Outbox__CleanupInterval` | `01:00:00` | How often retention runs |
+| `Outbox__CleanupBatchSize` | `1000` | Rows deleted per statement |
 | `Database__MigrateOnStartup` | `false` | Apply migrations at boot (dev/compose) |
 | `Api__ExposeDocumentation` | `false` | Expose Scalar/OpenAPI outside Development |
 | `Observability__OtlpEndpoint` | empty | OTLP gRPC endpoint; empty disables export |
@@ -248,11 +251,11 @@ production.
 dotnet test SeatGuard.slnx
 ```
 
-82 tests:
+83 tests:
 
 - **51 domain tests** for lifecycle invariants, money, ids and row labels.
 - **16 application tests** for handlers, validation and behaviours.
-- **15 integration tests** against real PostgreSQL in Testcontainers:
+- **16 integration tests** against real PostgreSQL in Testcontainers:
   lifecycle, idempotency, cache invalidation, both concurrency strategies,
   expiry through the sweeper, and outbox retry/backoff. A frozen
   `FakeTimeProvider` drives time; Respawn truncates between tests.
@@ -270,7 +273,8 @@ callback would apply.
   OTLP. Jaeger shows `seatguard-api` end to end.
 - **Metrics**: `/metrics` for Prometheus, including
   `seatguard_reservations_created_total`, `confirmed`, `cancelled`, `expired`,
-  `conflicts_total`, the reservation duration histogram and in-flight gauge.
+  `conflicts_total`, the reservation duration histogram, the in-flight gauge and
+  `seatguard_outbox_purged_total`.
 - **Health**: `/health/live` for liveness and `/health/ready` returning a JSON
   report per dependency.
 

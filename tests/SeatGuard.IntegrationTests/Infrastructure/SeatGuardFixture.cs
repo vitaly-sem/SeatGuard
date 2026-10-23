@@ -46,6 +46,7 @@ public sealed class SeatGuardFixture : IAsyncLifetime
         "Database__MigrateOnStartup",
         "Reservations__SweeperEnabled",
         "Outbox__Enabled",
+        "Outbox__CleanupEnabled",
         "Reservations__HoldDuration",
         "RateLimiting__BookingsPerMinute",
         "RateLimiting__AdminPerMinute",
@@ -65,6 +66,7 @@ public sealed class SeatGuardFixture : IAsyncLifetime
         Environment.SetEnvironmentVariable("Database__MigrateOnStartup", "true");
         Environment.SetEnvironmentVariable("Reservations__SweeperEnabled", "false");
         Environment.SetEnvironmentVariable("Outbox__Enabled", "false");
+        Environment.SetEnvironmentVariable("Outbox__CleanupEnabled", "false");
         Environment.SetEnvironmentVariable("Reservations__HoldDuration", "00:05:00");
         Environment.SetEnvironmentVariable("RateLimiting__BookingsPerMinute", "10000");
         Environment.SetEnvironmentVariable("RateLimiting__AdminPerMinute", "10000");
@@ -112,7 +114,11 @@ public sealed class SeatGuardFixture : IAsyncLifetime
                     settings.SweeperEnabled = false;
                 });
 
-                services.Configure<OutboxSettings>(settings => settings.Enabled = false);
+                services.Configure<OutboxSettings>(settings =>
+                {
+                    settings.Enabled = false;
+                    settings.CleanupEnabled = false;
+                });
 
                 configureServices?.Invoke(services);
             });

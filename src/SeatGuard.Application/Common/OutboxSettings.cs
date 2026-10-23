@@ -20,4 +20,16 @@ public sealed class OutboxSettings
     public TimeSpan LeaseDuration { get; set; } = TimeSpan.FromSeconds(30);
 
     public bool Enabled { get; set; } = true;
+
+    /// <summary>
+    /// Processed rows older than this many days are deleted. Zero disables
+    /// retention so operators can keep the full audit trail.
+    /// </summary>
+    public int RetentionDays { get; set; } = 7;
+
+    public TimeSpan CleanupInterval { get; set; } = TimeSpan.FromHours(1);
+
+    public int CleanupBatchSize { get; set; } = 1000;
+
+    public bool CleanupEnabled { get; set; } = true;
 }

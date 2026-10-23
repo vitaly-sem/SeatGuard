@@ -57,6 +57,12 @@ public static class DependencyInjection
             services.AddHostedService<OutboxDispatcherService>();
         }
 
+        services.AddScoped<IOutboxCleaner, OutboxCleaner>();
+        if (configuration.GetValue("Outbox:CleanupEnabled", true))
+        {
+            services.AddHostedService<OutboxCleanupService>();
+        }
+
         services.AddScoped<IExpiredReservationSweeper, ExpiredReservationSweeper>();
         if (configuration.GetValue("Reservations:SweeperEnabled", true))
         {
@@ -83,6 +89,15 @@ public static class DependencyInjection
             .Validate(settings => settings.BatchSize is > 0 and <= 1000, "Outbox:BatchSize must be between 1 and 1000.")
             .Validate(settings => settings.MaxAttempts > 0, "Outbox:MaxAttempts must be positive.")
             .Validate(settings => settings.LeaseDuration > TimeSpan.Zero, "Outbox:LeaseDuration must be positive.")
+            .Validate(
+                settings => settings.RetentionDays is >= 0 and <= 3650,
+                "Outbox:RetentionDays must be between 0 and 3650.")
+            .Validate(
+                settings => settings.CleanupInterval > TimeSpan.Zero,
+                "Outbox:CleanupInterval must be positive.")
+            .Validate(
+                settings => settings.CleanupBatchSize is > 0 and <= 10000,
+                "Outbox:CleanupBatchSize must be between 1 and 10000.")
             .ValidateOnStart();
 
         services.AddOptions<ReservationSettings>()

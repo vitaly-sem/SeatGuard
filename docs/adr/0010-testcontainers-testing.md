@@ -30,7 +30,7 @@ Domain and application rules remain covered by fast unit tests (67).
 
 - Tests catch real SQL, migration and constraint regressions.
 - Docker is required for the full suite; CI provides it.
-- Tests are slower than pure unit tests (about 2 seconds for 15 integration
+- Tests are slower than pure unit tests (about 3 seconds for 16 integration
   tests after the image is cached).
 - A broken migration fails every test, which is desirable.
 

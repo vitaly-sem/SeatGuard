@@ -32,4 +32,7 @@ public static class SeatGuardTelemetry
 
     public static readonly UpDownCounter<long> ReservationsInFlight =
         Meter.CreateUpDownCounter<long>("seatguard.reservations.in_flight", unit: "{request}");
+
+    public static readonly Counter<long> OutboxPurged =
+        Meter.CreateCounter<long>("seatguard.outbox.purged", unit: "{message}");
 }

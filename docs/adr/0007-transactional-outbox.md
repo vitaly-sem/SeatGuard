@@ -44,3 +44,11 @@ duplicate; consumers must be idempotent (keyed by message id or aggregate id).
   service.
 - Exactly-once: not achievable end-to-end without consumer cooperation; the
   honest contract is at-least-once.
+
+## Retention
+
+Processed rows are pruned after `Outbox:RetentionDays` (seven by default) in
+bounded batches. Pending and failed rows are never deleted automatically: a
+failed message is a dead letter that needs an operator, and a pending row is
+still part of the delivery guarantee. Setting `RetentionDays` to `0` keeps the
+full history.
