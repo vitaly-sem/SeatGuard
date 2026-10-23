@@ -116,7 +116,7 @@ jobs:
 
       - name: Smoke-test migrations, readiness and UI
         run: |
-          connection="Host=localhost;Port=5432;Database=seatguard;Username=seatguard;Password=seatguard"
+          connection="Host=127.0.0.1;Port=5432;Database=seatguard;Username=seatguard;Password=seatguard"
 
           docker run --rm --network host \
             -e ConnectionStrings__SeatGuard="$connection" \
@@ -132,7 +132,7 @@ jobs:
             seatguard-api:ci
 
           for _ in $(seq 1 30); do
-            if curl --fail --silent http://localhost:8080/health/ready > /tmp/ready.json; then
+            if curl --fail --silent http://127.0.0.1:8080/health/ready > /tmp/ready.json; then
               break
             fi
             sleep 1
@@ -140,7 +140,7 @@ jobs:
 
           cat /tmp/ready.json
           grep --quiet '"status":"Healthy"' /tmp/ready.json
-          curl --fail --silent http://localhost:8080/ui/ | grep --quiet "Booking console"
+          curl --fail --silent http://127.0.0.1:8080/ui/ | grep --quiet "Booking console"
 
       - name: Dump container logs
         if: always()
