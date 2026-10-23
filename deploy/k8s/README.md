@@ -46,7 +46,18 @@ kubectl apply -k deploy/k8s/overlays/prod
 ```
 
 `secrets.env` is gitignored. In a real cluster prefer External Secrets or your
-provider's secret manager instead of a local file.
+provider's secret manager instead of a local file. GHCR packages created by the
+workflow are private by default: either make the package public or create an
+image pull secret and reference it from the Deployment:
+
+```bash
+kubectl -n seatguard create secret docker-registry ghcr-pull \
+  --docker-server=ghcr.io \
+  --docker-username=<github-user> \
+  --docker-password=<token-with-read-packages>
+kubectl -n seatguard patch deployment seatguard-api \
+  -p '{"spec":{"template":{"spec":{"imagePullSecrets":[{"name":"ghcr-pull"}]}}}}'
+```
 
 ## What is included
 

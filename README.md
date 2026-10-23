@@ -1,5 +1,7 @@
 # SeatGuard
 
+[![ci](https://github.com/vitaly-sem/SeatGuard/actions/workflows/ci.yml/badge.svg)](https://github.com/vitaly-sem/SeatGuard/actions/workflows/ci.yml)
+
 Seat inventory and reservation service for ticketed events. The service owns the
 seat map, allocates seats under contention, expires unpaid holds, and issues
 tickets after a simulated payment. It is a single deployable .NET service backed
