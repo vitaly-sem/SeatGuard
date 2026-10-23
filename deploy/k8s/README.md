@@ -30,7 +30,8 @@ key from the generated Secret (`dev-admin-key`).
 ```bash
 cp deploy/k8s/overlays/prod/secrets.env.example deploy/k8s/overlays/prod/secrets.env
 # edit secrets.env: connection string and a strong Admin__ApiKey
-# edit the image tag and ingress host in kustomization.yaml / ingress.yaml
+# edit the ingress host; the image tag is set in kustomization.yaml
+# CI publishes 1.0.0 when you push a v1.0.0 tag
 kubectl apply -k deploy/k8s/overlays/prod
 kubectl -n seatguard rollout status deployment/seatguard-api
 ```

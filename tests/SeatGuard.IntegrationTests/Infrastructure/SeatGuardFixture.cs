@@ -30,6 +30,8 @@ public sealed class SeatGuardFixture : IAsyncLifetime
 
     private Respawner? _respawner;
 
+    private string TestConnectionString => _postgres.GetConnectionString() + ";Gss Encryption Mode=Disable";
+
     /// <summary>
     /// Frozen clock shared by every host. Tests advance it explicitly to drive
     /// hold expiry; nothing else moves it.
@@ -58,7 +60,7 @@ public sealed class SeatGuardFixture : IAsyncLifetime
         // WebHostBuilder configuration callback would run. Environment variables
         // are part of builder.Configuration from the start, so they are the only
         // reliable seam for those early reads.
-        Environment.SetEnvironmentVariable("ConnectionStrings__SeatGuard", _postgres.GetConnectionString());
+        Environment.SetEnvironmentVariable("ConnectionStrings__SeatGuard", TestConnectionString);
         Environment.SetEnvironmentVariable("Admin__ApiKey", TestApi.AdminKey);
         Environment.SetEnvironmentVariable("Database__MigrateOnStartup", "true");
         Environment.SetEnvironmentVariable("Reservations__SweeperEnabled", "false");
@@ -123,11 +125,11 @@ public sealed class SeatGuardFixture : IAsyncLifetime
             var dbContext = scope.ServiceProvider.GetRequiredService<SeatGuardDbContext>();
             var actual = dbContext.Database.GetDbConnection().ConnectionString;
 
-            if (!string.Equals(actual, _postgres.GetConnectionString(), StringComparison.Ordinal))
+            if (!string.Equals(actual, TestConnectionString, StringComparison.Ordinal))
             {
                 throw new InvalidOperationException(
                     "The test host is not using the Testcontainers database. " +
-                    $"Expected '{_postgres.GetConnectionString()}', got '{actual}'.");
+                    $"Expected '{TestConnectionString}', got '{actual}'.");
             }
 
             await dbContext.Database.MigrateAsync();

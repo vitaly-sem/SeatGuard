@@ -236,6 +236,11 @@ exercised 50 parallel requests through the real API with the same result.
 | `RateLimiting__BookingsPerMinute` | `120` | Per-IP booking requests |
 | `RateLimiting__AdminPerMinute` | `30` | Per-IP admin requests |
 
+Connection strings in the samples include `Gss Encryption Mode=Disable`: the
+chiseled runtime does not ship the Kerberos library, and password authentication
+does not need GSS encryption. Terminate TLS at PostgreSQL or a proxy in
+production.
+
 ## Testing
 
 ```bash

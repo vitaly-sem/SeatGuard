@@ -24,7 +24,7 @@ services:
     environment:
       ASPNETCORE_ENVIRONMENT: Production
       ASPNETCORE_URLS: http://+:8080
-      ConnectionStrings__SeatGuard: Host=postgres;Port=5432;Database=seatguard;Username=seatguard;Password=seatguard
+      ConnectionStrings__SeatGuard: Host=postgres;Port=5432;Database=seatguard;Username=seatguard;Password=seatguard;Gss Encryption Mode=Disable
       Admin__ApiKey: ${ADMIN_API_KEY:-dev-admin-key}
       Database__MigrateOnStartup: "true"
       Api__ExposeDocumentation: "true"

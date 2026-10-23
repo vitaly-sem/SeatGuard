@@ -28,6 +28,15 @@ public static class DependencyInjection
             ?? throw new InvalidOperationException(
                 "Connection string 'SeatGuard' is not configured.");
 
+        // Npgsql probes for the Kerberos library when GSS encryption is left at
+        // its default ("Prefer"). The chiseled runtime does not ship that library
+        // and password authentication does not need it. Operators can still opt
+        // in explicitly with "Gss Encryption Mode=Require".
+        if (!connectionString.Contains("gss encryption mode", StringComparison.OrdinalIgnoreCase))
+        {
+            connectionString += ";Gss Encryption Mode=Disable";
+        }
+
         services.AddDbContext<SeatGuardDbContext>(options => options
             .UseNpgsql(connectionString, npgsql => npgsql.CommandTimeout(30))
             .UseSnakeCaseNamingConvention());

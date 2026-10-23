@@ -15,7 +15,7 @@ patches:
 secretGenerator:
   - name: seatguard-secrets
     literals:
-      - ConnectionStrings__SeatGuard=Host=seatguard-postgres;Port=5432;Database=seatguard;Username=seatguard;Password=seatguard
+      - ConnectionStrings__SeatGuard=Host=seatguard-postgres;Port=5432;Database=seatguard;Username=seatguard;Password=seatguard;Gss Encryption Mode=Disable
       - Admin__ApiKey=dev-admin-key
   - name: seatguard-postgres
     literals:
